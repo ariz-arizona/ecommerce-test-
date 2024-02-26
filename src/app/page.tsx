@@ -31,7 +31,7 @@ type ApiQueryFilter = {
   params: ApiQueryFilterElements
 }
 type ApiQueryFilterElements = {
-  price?: { min: number, max: number },
+  price?: number,
   product?: string,
   brand?: string
 }
@@ -49,6 +49,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 export const apiRequest = (async (query: ApiQuery) => {
   if (!PWD || !API_URL) { return { error: 'no api', data: [] } }
+  if (!Object.keys(query.params).length) { return { error: 'no params', data: [] } }
 
   const headers = new Headers();
   const [pD, pM, pY] = [...new Date().toLocaleDateString('ru', { year: 'numeric', month: '2-digit', day: '2-digit' }).split('.')]
@@ -82,10 +83,12 @@ export const apiRequest = (async (query: ApiQuery) => {
   }
 })
 
+
 export const PageContext = createContext({
   items: [] as Item[],
   isLoading: false as boolean,
-  filter: {} as any
+  filter: {} as any,
+  updateFilter: null as any
 })
 
 export default function Home() {
@@ -115,9 +118,26 @@ export default function Home() {
     setPage({ offset: (newPage - 1) * pageSize, limit: page.limit })
   }
 
+  const updateFilter = async (newFilterData: ApiQueryFilterElements): Promise<void> => {
+    setFilter(newFilterData)
+
+    setLoading(true)
+    let ids: ApiData = { data: [], error: null }
+    if (Object.keys(newFilterData).length) {
+      ids = await apiRequest({ action: "filter", params: newFilterData })
+    } else {
+      ids = await apiRequest({ action: "get_ids", params: page })
+    }
+    setIds([...new Set(ids.data)])
+    setLoading(false)
+
+    const items = await apiRequest({ action: "get_items", params: { ids: ids.data } })
+    setItems(items.data)
+  }
+
   return (
     <main className={styles.main}>
-      <PageContext.Provider value={{ items, isLoading: isLoading || !!(ids.length && !items.length), filter }}>
+      <PageContext.Provider value={{ items, isLoading: isLoading || !!(ids.length && !items.length), filter, updateFilter }}>
         <Row gutter={24}>
           <Col span={6}><Sidebar /></Col>
           <Col span={18}>

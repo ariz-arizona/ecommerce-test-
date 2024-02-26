@@ -1,13 +1,14 @@
 import { useContext } from "react"
-import { Button, Form, Select, Slider, Spin, Typography } from "antd"
+import { Button, Col, Form, Row, Select, Slider, Spin, Typography } from "antd"
 
 import { PageContext } from "../page"
 
 export default function Sidebar() {
-    const { items, isLoading } = useContext(PageContext)
+    const { items, isLoading, filter, updateFilter } = useContext(PageContext)
 
     const names: string[] = []
     const brands: string[] = []
+    const prices: number[] = []
 
     for (let index = 0; index < items.length; index++) {
         const element = items[index];
@@ -17,14 +18,18 @@ export default function Sidebar() {
         if (element.product && !names.includes(element.product)) {
             names.push(element.product)
         }
+        if (element.price && !prices.includes(element.price)) {
+            prices.push(element.price)
+        }
     }
 
-    const prices = items.map(el => el.price)
-    const slider = { min: Math.min(...prices), max: Math.max(...prices) }
+    prices.sort((a, b) => a - b);
 
     const filterFunc = (values: any) => {
-        console.log(values)
-
+        updateFilter(values)
+    }
+    const resetFilters = () => {
+        updateFilter({})
     }
     return isLoading ?
         <Spin style={{ minHeight: '200px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} /> :
@@ -32,22 +37,39 @@ export default function Sidebar() {
             <Typography.Paragraph>
                 Фильтрация результатов по:
             </Typography.Paragraph>
-            <Form.Item label="Названию" name="name">
+            <Form.Item label="Названию" name="product" initialValue={filter.product}>
                 <Select
                     style={{ width: '100%' }}
-                    showSearch={true}
                     options={names.map(el => { return { value: el, label: el } })}
-                    filterOption={(input, option) => (option?.label ?? '').includes(input)}
+                    showSearch={true}
+                    allowClear={true}
                 />
             </Form.Item>
-            <Form.Item label="Цене" name="price" initialValue={[slider.min, slider.max]}>
-                <Slider range max={slider.max} min={slider.min} />
+            <Form.Item label="Цене" name="price" initialValue={filter.price}>
+                <Select
+                    style={{ width: '100%' }}
+                    options={prices.map(el => { return { value: el, label: el } })}
+                    showSearch={true}
+                    allowClear={true}
+                />
             </Form.Item>
-            <Form.Item label="Бренду" name="brand">
-                <Select style={{ width: '100%' }} options={brands.map(el => { return { value: el, label: el } })} />
+            <Form.Item label="Бренду" name="brand" initialValue={filter.brand}>
+                <Select
+                    style={{ width: '100%' }}
+                    options={brands.map(el => { return { value: el, label: el } })}
+                    showSearch={true}
+                    allowClear={true}
+                />
             </Form.Item>
             <Form.Item>
-                <Button type="primary" htmlType="submit">Искать</Button>
+                <Row gutter={24} justify={'space-between'}>
+                    <Col>
+                        <Button type="default" onClick={resetFilters}>Сбросить фильтры</Button>
+                    </Col>
+                    <Col>
+                        <Button type="primary" htmlType="submit">Искать</Button>
+                    </Col>
+                </Row>
             </Form.Item>
         </Form>
 }
