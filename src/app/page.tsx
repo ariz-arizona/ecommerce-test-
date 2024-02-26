@@ -12,14 +12,31 @@ type ApiData = {
   error: null | string
   data: any[]
 }
-type ApiQuery = {
-  action: "get_ids" | "get_items",
+
+type ApiQueryIds = {
+  action: "get_ids",
   params: {
-    ids?: string[],
-    offset?: number,
-    limit?: number
+    offset: number,
+    limit: number
   }
 }
+type ApiQueryItems = {
+  action: "get_items",
+  params: {
+    ids: string[]
+  }
+}
+type ApiQueryFilter = {
+  action: "filter",
+  params: ApiQueryFilterElements
+}
+type ApiQueryFilterElements = {
+  price?: { min: number, max: number },
+  product?: string,
+  brand?: string
+}
+type ApiQuery = ApiQueryIds | ApiQueryItems | ApiQueryFilter
+
 export type Item = {
   brand: string | null,
   id: string,
@@ -30,7 +47,7 @@ export type Item = {
 const PWD = process.env.NEXT_PUBLIC_PWD
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
-const apiRequest = (async (query: ApiQuery) => {
+export const apiRequest = (async (query: ApiQuery) => {
   if (!PWD || !API_URL) { return { error: 'no api', data: [] } }
 
   const headers = new Headers();
@@ -67,7 +84,8 @@ const apiRequest = (async (query: ApiQuery) => {
 
 export const PageContext = createContext({
   items: [] as Item[],
-  isLoading: false as boolean
+  isLoading: false as boolean,
+  filter: {} as any
 })
 
 export default function Home() {
@@ -75,6 +93,7 @@ export default function Home() {
   const [ids, setIds] = useState<string[]>([])
   const [items, setItems] = useState<Item[]>([])
   const [isLoading, setLoading] = useState<boolean>(true)
+  const [filter, setFilter] = useState<ApiQueryFilterElements>({})
 
   const getData = (async () => {
     setLoading(true)
@@ -98,7 +117,7 @@ export default function Home() {
 
   return (
     <main className={styles.main}>
-      <PageContext.Provider value={{ items, isLoading: isLoading || !!(ids.length && !items.length) }}>
+      <PageContext.Provider value={{ items, isLoading: isLoading || !!(ids.length && !items.length), filter }}>
         <Row gutter={24}>
           <Col span={6}><Sidebar /></Col>
           <Col span={18}>

@@ -1,5 +1,5 @@
 import { useContext } from "react"
-import { Button, Form, Select, Slider, Space, Spin, Typography } from "antd"
+import { Button, Form, Select, Slider, Spin, Typography } from "antd"
 
 import { PageContext } from "../page"
 
@@ -24,6 +24,7 @@ export default function Sidebar() {
 
     const filterFunc = (values: any) => {
         console.log(values)
+
     }
     return isLoading ?
         <Spin style={{ minHeight: '200px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} /> :
