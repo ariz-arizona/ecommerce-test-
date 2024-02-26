@@ -6,7 +6,7 @@ import md5 from 'md5';
 import styles from "./page.module.css";
 import Sidebar from './main/sidebar';
 import Item from './main/item';
-import { useEffect, useMemo, useState } from 'react';
+import { createContext, useEffect, useMemo, useState } from 'react';
 
 type ApiData = {
   error: null | string
@@ -65,6 +65,11 @@ const apiRequest = (async (query: ApiQuery) => {
   }
 })
 
+export const PageContext = createContext({
+  items: [] as Item[],
+  isLoading: false as boolean
+})
+
 export default function Home() {
   const [page, setPage] = useState<{ offset: number, limit: number }>({ offset: 0, limit: 50 })
   const [ids, setIds] = useState<string[]>([])
@@ -75,7 +80,7 @@ export default function Home() {
     setLoading(true)
 
     const ids = await apiRequest({ action: "get_ids", params: page })
-    setIds(ids.data)
+    setIds([...new Set(ids.data)])
 
     setLoading(false)
 
@@ -93,34 +98,36 @@ export default function Home() {
 
   return (
     <main className={styles.main}>
-      <Row gutter={24}>
-        <Col span={6}><Sidebar /></Col>
-        <Col span={18}>
-          <Row gutter={[24, 24]}>
-            {(!API_URL || !PWD) && <Alert message="API недоступно" type='error' />}
-            {isLoading &&
-              <Col span={24}>
-                <Spin style={{ minHeight: '200px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
-              </Col>}
-            {ids.length > 0 && <>
-              {ids.map((el: string, i: number) => <Col span={8} key={i}>
-                <Item id={el} item={items.find(item => item.id === el)} />
-              </Col>)}
-              <Col span={24}>
-                <Pagination
-                  responsive={true}
-                  total={300}
-                  current={(page.offset / page.limit) + 1}
-                  showSizeChanger={false}
-                  pageSize={page.limit}
-                  onChange={onPageChange}
-                />
-              </Col>
-            </>
-            }
-          </Row>
-        </Col>
-      </Row>
+      <PageContext.Provider value={{ items, isLoading: isLoading || !!(ids.length && !items.length) }}>
+        <Row gutter={24}>
+          <Col span={6}><Sidebar /></Col>
+          <Col span={18}>
+            <Row gutter={[24, 24]}>
+              {(!API_URL || !PWD) && <Alert message="API недоступно" type='error' />}
+              {isLoading &&
+                <Col span={24}>
+                  <Spin style={{ minHeight: '200px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} />
+                </Col>}
+              {ids.length > 0 && <>
+                {ids.map((el: string, i: number) => <Col span={8} key={i}>
+                  <Item id={el} item={items.find(item => item.id === el)} />
+                </Col>)}
+                <Col span={24}>
+                  <Pagination
+                    responsive={true}
+                    total={300}
+                    current={(page.offset / page.limit) + 1}
+                    showSizeChanger={false}
+                    pageSize={page.limit}
+                    onChange={onPageChange}
+                  />
+                </Col>
+              </>
+              }
+            </Row>
+          </Col>
+        </Row>
+      </PageContext.Provider>
     </main>
   );
 }
