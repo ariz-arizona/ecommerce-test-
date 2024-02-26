@@ -1,11 +1,11 @@
-import { Spin, Card, Typography, Skeleton } from "antd"
-import { Item } from "../page"
+import { Card, Typography, Skeleton } from "antd"
+import type { ApiItem } from "../components/context"
 
 type itemProps = {
     id: string,
-    item?: Item
+    item?: ApiItem
 }
-export default function Item({ id, item }: itemProps) {
+export default function Item({ item }: itemProps) {
     return item ? <Card title={item.product}>
         <Typography.Paragraph>{item.product}{item.brand ? ` от ${item.brand}` : ''}</Typography.Paragraph>
         <Typography.Paragraph ellipsis={true}>

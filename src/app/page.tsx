@@ -1,53 +1,19 @@
 'use client'
 
-import { Alert, Col, Pagination, Row, Spin } from 'antd';
+import { useEffect, useState } from 'react';
+import { Alert, Col, Pagination, Row, Spin, Typography } from 'antd';
 import md5 from 'md5';
 
 import styles from "./page.module.css";
 import Sidebar from './main/sidebar';
 import Item from './main/item';
-import { createContext, useEffect, useMemo, useState } from 'react';
-
-type ApiData = {
-  error: null | string
-  data: any[]
-}
-
-type ApiQueryIds = {
-  action: "get_ids",
-  params: {
-    offset: number,
-    limit: number
-  }
-}
-type ApiQueryItems = {
-  action: "get_items",
-  params: {
-    ids: string[]
-  }
-}
-type ApiQueryFilter = {
-  action: "filter",
-  params: ApiQueryFilterElements
-}
-type ApiQueryFilterElements = {
-  price?: number,
-  product?: string,
-  brand?: string
-}
-type ApiQuery = ApiQueryIds | ApiQueryItems | ApiQueryFilter
-
-export type Item = {
-  brand: string | null,
-  id: string,
-  price: number,
-  product: string
-}
+import { PageContext } from './components/context';
+import type { ApiQuery, ApiData, ApiQueryFilterElements, ApiItem, ApiPage } from './components/context';
 
 const PWD = process.env.NEXT_PUBLIC_PWD
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
-export const apiRequest = (async (query: ApiQuery) => {
+const apiRequest = (async (query: ApiQuery) => {
   if (!PWD || !API_URL) { return { error: 'no api', data: [] } }
   if (!Object.keys(query.params).length) { return { error: 'no params', data: [] } }
 
@@ -84,17 +50,11 @@ export const apiRequest = (async (query: ApiQuery) => {
 })
 
 
-export const PageContext = createContext({
-  items: [] as Item[],
-  isLoading: false as boolean,
-  filter: {} as any,
-  updateFilter: null as any
-})
 
 export default function Home() {
-  const [page, setPage] = useState<{ offset: number, limit: number }>({ offset: 0, limit: 50 })
+  const [page, setPage] = useState<ApiPage>({ offset: 0, limit: 50 })
   const [ids, setIds] = useState<string[]>([])
-  const [items, setItems] = useState<Item[]>([])
+  const [items, setItems] = useState<ApiItem[]>([])
   const [isLoading, setLoading] = useState<boolean>(true)
   const [filter, setFilter] = useState<ApiQueryFilterElements>({})
 
@@ -110,6 +70,27 @@ export default function Home() {
     setItems(items.data)
   })
 
+  const updateFilter = async (newFilterData: ApiQueryFilterElements): Promise<void> => {
+    let ids: ApiData = { data: [], error: null }
+    let newPage: ApiPage = { offset: 0, limit: page.limit }
+
+    setLoading(true)
+    setFilter(newFilterData)
+    setPage(newPage)
+
+    if (Object.keys(newFilterData).length) {
+      ids = await apiRequest({ action: "filter", params: newFilterData })
+    } else {
+      ids = await apiRequest({ action: "get_ids", params: newPage })
+    }
+
+    setIds([...new Set(ids.data)])
+    setLoading(false)
+
+    const items = await apiRequest({ action: "get_items", params: { ids: ids.data } })
+    setItems(items.data)
+  }
+
   useEffect(() => {
     getData()
   }, [page.offset])
@@ -118,26 +99,9 @@ export default function Home() {
     setPage({ offset: (newPage - 1) * pageSize, limit: page.limit })
   }
 
-  const updateFilter = async (newFilterData: ApiQueryFilterElements): Promise<void> => {
-    setFilter(newFilterData)
-
-    setLoading(true)
-    let ids: ApiData = { data: [], error: null }
-    if (Object.keys(newFilterData).length) {
-      ids = await apiRequest({ action: "filter", params: newFilterData })
-    } else {
-      ids = await apiRequest({ action: "get_ids", params: page })
-    }
-    setIds([...new Set(ids.data)])
-    setLoading(false)
-
-    const items = await apiRequest({ action: "get_items", params: { ids: ids.data } })
-    setItems(items.data)
-  }
-
   return (
     <main className={styles.main}>
-      <PageContext.Provider value={{ items, isLoading: isLoading || !!(ids.length && !items.length), filter, updateFilter }}>
+      <PageContext.Provider value={{ items, page, isLoading: isLoading || !!(ids.length && !items.length), filter, updateFilter }}>
         <Row gutter={24}>
           <Col span={6}><Sidebar /></Col>
           <Col span={18}>

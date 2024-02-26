@@ -1,10 +1,21 @@
-import { useContext } from "react"
-import { Button, Col, Form, Row, Select, Slider, Spin, Typography } from "antd"
+import { useContext, useState } from "react"
+import { Button, Col, Form, Row, Select, Spin, Typography } from "antd"
+import { PageContext } from "../components/context"
 
-import { PageContext } from "../page"
+type formStateT = {
+    product: string | null,
+    price: number | null,
+    brand: string | null
+}
 
 export default function Sidebar() {
-    const { items, isLoading, filter, updateFilter } = useContext(PageContext)
+    const { items, page, isLoading, filter, updateFilter } = useContext(PageContext)
+
+    const [formState, setFormState] = useState<formStateT>({
+        product: filter.product ?? null,
+        price: filter.price ?? null,
+        brand: filter.brand ?? null
+    })
 
     const names: string[] = []
     const brands: string[] = []
@@ -25,40 +36,64 @@ export default function Sidebar() {
 
     prices.sort((a, b) => a - b);
 
-    const filterFunc = (values: any) => {
-        updateFilter(values)
+    const filterFunc = () => {
+        const newState = Object.assign({}, formState)
+        Object.entries(newState).map(el => {
+            if (!el[1]) delete newState[el[0]]
+        })
+        if (updateFilter) updateFilter(newState)
     }
     const resetFilters = () => {
-        updateFilter({})
+        setFormState({ product: null, brand: null, price: null })
+        if (updateFilter) updateFilter({})
     }
-    return isLoading ?
+    const onSelectChange = (v: string | number, name: 'product' | 'price' | 'brand') => {
+        const newState = Object.assign({}, formState)
+        for (let index = 0; index < Object.keys(formState).length; index++) {
+            const element = Object.keys(formState)[index];
+            if (element === name) {
+                newState[element] = v
+            } else {
+                newState[element] = null
+            }
+        }
+        setFormState(newState)
+    }
+
+    return <>{isLoading ?
         <Spin style={{ minHeight: '200px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} /> :
         <Form layout="vertical" onFinish={filterFunc}>
             <Typography.Paragraph>
                 Фильтрация результатов по:
             </Typography.Paragraph>
-            <Form.Item label="Названию" name="product" initialValue={filter.product}>
+            <Form.Item label="Названию">
                 <Select
                     style={{ width: '100%' }}
                     options={names.map(el => { return { value: el, label: el } })}
                     showSearch={true}
                     allowClear={true}
+                    onChange={(v) => onSelectChange(v, 'product')}
+                    value={formState.product}
                 />
             </Form.Item>
-            <Form.Item label="Цене" name="price" initialValue={filter.price}>
+            <Form.Item label="Цене">
                 <Select
                     style={{ width: '100%' }}
                     options={prices.map(el => { return { value: el, label: el } })}
                     showSearch={true}
                     allowClear={true}
+                    onChange={(v) => onSelectChange(v, 'price')}
+                    value={formState.price}
                 />
             </Form.Item>
-            <Form.Item label="Бренду" name="brand" initialValue={filter.brand}>
+            <Form.Item label="Бренду">
                 <Select
                     style={{ width: '100%' }}
                     options={brands.map(el => { return { value: el, label: el } })}
                     showSearch={true}
                     allowClear={true}
+                    onChange={(v) => onSelectChange(v, 'brand')}
+                    value={formState.brand}
                 />
             </Form.Item>
             <Form.Item>
@@ -71,5 +106,10 @@ export default function Sidebar() {
                     </Col>
                 </Row>
             </Form.Item>
-        </Form>
+        </Form>}
+        <Col span={24}>
+            <Typography.Paragraph code>FILTER {JSON.stringify(filter)}</Typography.Paragraph>
+            <Typography.Paragraph code>PAGE {JSON.stringify(page)}</Typography.Paragraph>
+        </Col>
+    </>
 }
