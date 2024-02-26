@@ -1,6 +1,10 @@
+import { Spin } from "antd"
+import { Item } from "../page"
+
 type itemProps = {
-    id: string
+    id: string,
+    item?: Item
 }
-export default function Item({ id }: itemProps) {
-    return (`item file ${id}`)
+export default function Item({ id, item }: itemProps) {
+    return <>{item ? item.product : < Spin />}</>
 }
