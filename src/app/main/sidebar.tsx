@@ -1,20 +1,18 @@
 import { useContext, useState } from "react"
-import { Button, Col, Form, Row, Select, Spin, Typography } from "antd"
+import { Button, Col, Form, Input, Row, Select, Spin, Typography } from "antd"
 import { PageContext } from "../components/context"
 
 type formStateT = {
-    product: string | null,
-    price: number | null,
-    brand: string | null
+    [key: string]: string | number | undefined
 }
 
 export default function Sidebar() {
     const { items, page, isLoading, filter, updateFilter } = useContext(PageContext)
 
     const [formState, setFormState] = useState<formStateT>({
-        product: filter.product ?? null,
-        price: filter.price ?? null,
-        brand: filter.brand ?? null
+        product: filter.product ?? undefined,
+        price: filter.price ?? undefined,
+        brand: filter.brand ?? undefined
     })
 
     const names: string[] = []
@@ -44,7 +42,7 @@ export default function Sidebar() {
         if (updateFilter) updateFilter(newState)
     }
     const resetFilters = () => {
-        setFormState({ product: null, brand: null, price: null })
+        setFormState({ product: undefined, brand: undefined, price: undefined })
         if (updateFilter) updateFilter({})
     }
     const onSelectChange = (v: string | number, name: 'product' | 'price' | 'brand') => {
@@ -54,7 +52,7 @@ export default function Sidebar() {
             if (element === name) {
                 newState[element] = v
             } else {
-                newState[element] = null
+                newState[element] = undefined
             }
         }
         setFormState(newState)
@@ -67,12 +65,10 @@ export default function Sidebar() {
                 Фильтрация результатов по:
             </Typography.Paragraph>
             <Form.Item label="Названию">
-                <Select
+                <Input
                     style={{ width: '100%' }}
-                    options={names.map(el => { return { value: el, label: el } })}
-                    showSearch={true}
                     allowClear={true}
-                    onChange={(v) => onSelectChange(v, 'product')}
+                    onChange={(v) => onSelectChange(v.target.value, 'product')}
                     value={formState.product}
                 />
             </Form.Item>
