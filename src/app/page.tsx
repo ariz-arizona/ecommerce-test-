@@ -1,95 +1,63 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+import { Alert, Col, Row } from 'antd';
+import md5 from 'md5';
 
-export default function Home() {
+import styles from "./page.module.css";
+import Sidebar from './main/sidebar';
+import Item from './main/item';
+
+type Items = {
+  error: null | string
+  list: string[]
+}
+
+export const getData = (async () => {
+  const headers = new Headers();
+  const [pD, pM, pY] = [...new Date().toLocaleDateString('ru', { year: 'numeric', month: '2-digit', day: '2-digit' }).split('.')]
+  const md5Hash = md5(`Valantis_${pY}${pM}${pD}`)
+  headers.append('X-Auth', md5Hash)
+  headers.append('Content-Type', 'application/json')
+
+  const items: Items = { list: [], error: null }
+
+  try {
+    const res = await fetch('http://api.valantis.store:40000/', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        "action": "get_ids",
+        "params": { "offset": 0, "limit": 3 }
+      })
+    })
+
+    if (res.status > 200) {
+      items.error = `Произошла ошибка: ${res.status} ${res.statusText}`;
+    } else {
+      items.list = (await res.json()).result
+    }
+  } catch (err) {
+    items.error = (err || 'ERR').toString()
+  }
+
+  return items
+})
+
+export default async function Home() {
+  const { list, error } = await getData()
+
   return (
     <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+      <Row>
+        <Col span={6}><Sidebar /></Col>
+        <Col span={18}>
+          {error ? <Alert message={error} type='error' /> :
+            <Row>
+              {list.map((el: string, i: number) => <Col span={4} key={i}>
+                <Item id={el} />
+              </Col>)}
+            </Row>
+          }
+        </Col>
+      </Row>
     </main>
   );
 }
